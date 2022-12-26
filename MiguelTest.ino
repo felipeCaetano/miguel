@@ -1,22 +1,12 @@
 #include <WiFi.h>
-#include <Arduino_GFX_Library.h>
-#include <lvgl.h>
-
-#define GFX_BL DF_GFX_BL // default backlight pin, you may replace DF_GFX_BL to actual backlight pin
-#define TFT_BL 2
-/* More dev device declaration: https://github.com/moononournation/Arduino_GFX/wiki/Dev-Device-Declaration */
-#if defined(DISPLAY_DEV_KIT)
-Arduino_GFX *gfx = create_default_Arduino_GFX();
-#else /* !defined(DISPLAY_DEV_KIT) */
-
-/* More data bus class: https://github.com/moononournation/Arduino_GFX/wiki/Data-Bus-Class */
-//Arduino_DataBus *bus = create_default_Arduino_DataBus();
-
-/* More display class: https://github.com/moononournation/Arduino_GFX/wiki/Display-Class *//*******************************************************************************
+/*******************************************************************************
  ******************************************************************************/
 #include <Arduino_GFX_Library.h>
 #include <lvgl.h>
-//vovos://github.com/moononournation/Arduino_GFX/wiki/Dev-Device-Declaration */
+
+#define GFX_BL DF_GFX_BL  // default backlight pin, you may replace DF_GFX_BL to actual backlight pin
+#define TFT_BL 2
+/* More dev device declaration: https://github.com/moononournation/Arduino_GFX/wiki/Dev-Device-Declaration */
 #if defined(DISPLAY_DEV_KIT)
 Arduino_GFX *gfx = create_default_Arduino_GFX();
 #else  /* !defined(DISPLAY_DEV_KIT) */
@@ -25,7 +15,6 @@ Arduino_GFX *gfx = create_default_Arduino_GFX();
 //Arduino_DataBus *bus = create_default_Arduino_DataBus();
 
 /* More display class: https://github.com/moononournation/Arduino_GFX/wiki/Display-Class */
-//Arduino_GFX *gfx = new Arduino_ILI9341(bus, DF_GFX_RST, 0 /* rotation */, false /* IPS */);
 //Arduino_GFX *gfx = new Arduino_ILI9341(bus, DF_GFX_RST, 0 /* rotation */, false /* IPS */);
 
 Arduino_ESP32RGBPanel *bus = new Arduino_ESP32RGBPanel(
@@ -68,10 +57,6 @@ static lv_disp_drv_t disp_drv;
 int16_t btn_width = 100;
 int16_t btn_height = 100;
 
-/*Wifi definitions*/
-const char *ssid = "Antonio_nexus"; //"DTEL_MIGUEL 2.4";
-const char *password = "08120622";//"M1Gu3EL701";
-
 /*display flushing*/
 void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p) {
   uint32_t w = (area->x2 - area->x1 + 1);
@@ -101,28 +86,32 @@ void my_touch_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data) {
   }
 }
 
+
 static void event_handler(lv_event_t *e) {
-  
+
   lv_event_code_t code = lv_event_get_code(e);
-  lv_obj_t *btn =  (lv_obj_t*)lv_event_get_target(e);
-  lv_obj_t *label =  (lv_obj_t*)lv_event_get_user_data(e);
+  lv_obj_t *btn = (lv_obj_t *)lv_event_get_target(e);
+  lv_obj_t *label = (lv_obj_t *)lv_event_get_user_data(e);
   lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL);
   lv_obj_t *content = lv_obj_get_child(btn, 0);
   char *texto = lv_label_get_text(label);
   char long_text[2048];
 
   if (code == LV_EVENT_CLICKED) {
-  strcpy(long_text, lv_label_get_text(content));
-  
+    strcpy(long_text, lv_label_get_text(content));
+
     lv_label_set_text(label, long_text);
   } else if (code == LV_EVENT_RELEASED) {
     LV_LOG_USER("Pressione um botão");
   }
 }
 
+const char* ssid     = "chesf-movel";
+const char* password = "Helena_2";
+
 void setup(void) {
   Serial.begin(921600);
-  Serial.println("LVGL Hello World");
+  // Serial.println("LVGL Hello World");
 
   touch_init();
   gfx->begin();
@@ -133,20 +122,7 @@ void setup(void) {
 #endif
 
   lv_init();
-/*******************************************************************************
- ******************************************************************************/
-#include <Arduino_GFX_Library.h>
-#include <lvgl.h>
-//vovos://github.com/moononournation/Arduino_GFX/wiki/Dev-Device-Declaration */
-#if defined(DISPLAY_DEV_KIT)
-Arduino_GFX *gfx = create_default_Arduino_GFX();
-#else  /* !defined(DISPLAY_DEV_KIT) */
 
-/* More data bus class: https://github.com/moononournation/Arduino_GFX/wiki/Data-Bus-Class */
-//Arduino_DataBus *bus = create_default_Arduino_DataBus();
-
-/* More display class: https://github.com/moononournation/Arduino_GFX/wiki/Display-Class */
-//Arduino_GFX *gfx = new Arduino_ILI9341(bus, DF_GFX_RST, 0 /* rotation */, false /* IPS */);
 #ifdef ESP32
   disp_draw_buf = (lv_color_t *)heap_caps_malloc(sizeof(lv_color_t) * screenWidth * 10, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
 #else
@@ -179,16 +155,16 @@ Arduino_GFX *gfx = create_default_Arduino_GFX();
     //   lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
 
     /*WiFi initialization*/
-    Serial.println("Connecting");
+    // Serial.println("Connecting");
     WiFi.begin(ssid, password);
 
     // while (WiFi.status() != WL_CONNECTED) {
     //   delay(500);
     //   Serial.print(".");
     // }
-    Serial.println("");
-    Serial.print("Connected to WiFi network with IP Address: ");
-    Serial.println(WiFi.localIP());
+    // Serial.println("");
+    // Serial.print("Connected to WiFi network with IP Address: ");
+    // Serial.println(WiFi.localIP());
 
     /*Carregando imagens*/
     LV_IMG_DECLARE(eu);
@@ -198,10 +174,12 @@ Arduino_GFX *gfx = create_default_Arduino_GFX();
     LV_IMG_DECLARE(ajuda);
     LV_IMG_DECLARE(assistir);
     LV_IMG_DECLARE(beber);
+    LV_IMG_DECLARE(comer);
     LV_IMG_DECLARE(nao);
-    LV_IMG_DECLARE(pasear);
-    LV_IMG_DECLARE(pegar);
+    // LV_IMG_DECLARE(passear);
+    // LV_IMG_DECLARE(pegar);
     LV_IMG_DECLARE(querer);
+    LV_IMG_DECLARE(entrar);
     LV_IMG_DECLARE(sair);
     LV_IMG_DECLARE(sim);
 
@@ -282,45 +260,63 @@ Arduino_GFX *gfx = create_default_Arduino_GFX();
     lv_obj_add_event_cb(imgbtn01, event_handler, LV_EVENT_ALL, label);
     lv_obj_add_style(imgbtn01, &style_def, 0);
     lv_obj_add_style(imgbtn01, &style_pr, LV_STATE_PRESSED);
-    static lv_style_t style_but;
-    lv_style_init(&style_but);
+  
     lv_style_set_text_color(&style_but, lv_color_black());
     lv_obj_add_style(imgbtn01, &style, 0);
     lv_obj_set_size(imgbtn01, 100, 100);
     lv_obj_set_pos(imgbtn01, 120, 50);
 
     lv_obj_t *labelbtn01 = lv_label_create(imgbtn01);
-    lv_label_set_text(labelbtn01, "BOTAO2");
+    lv_label_set_text(labelbtn01, "Querer");
     lv_obj_align(labelbtn01, LV_ALIGN_TOP_MID, 0, -4);
 
     /*CREATE AN IMGBTN02*/
-    lv_obj_t *imgbtn02 = lv_btn_create(screenMain);
-    //lv_imgbtn_set_src(imgbtn02, LV_IMGBTN_STATE_RELEASED, NULL, NULL, NULL);
+    lv_obj_t *imgbtn02 = lv_imgbtn_create(screenMain);
+    lv_imgbtn_set_src(imgbtn02, LV_IMGBTN_STATE_RELEASED, NULL, &assistir, NULL);
+
+    lv_obj_add_event_cb(imgbtn02, event_handler, LV_EVENT_ALL, label);
+    lv_obj_add_style(imgbtn02, &style_def, 0);
+    lv_obj_add_style(imgbtn02, &style_pr, LV_STATE_PRESSED);
+
+    lv_style_set_text_color(&style_but, lv_color_black());
+    lv_obj_add_style(imgbtn02, &style, 0);        
+
     lv_obj_set_size(imgbtn02, 100, 100);
     lv_obj_set_pos(imgbtn02, 230, 50);
 
     lv_obj_t *labelbtn02 = lv_label_create(imgbtn02);
-    lv_label_set_text(labelbtn02, "BOTAO3");
+    lv_label_set_text(labelbtn02, "Assistir");
     lv_obj_align(labelbtn02, LV_ALIGN_TOP_MID, 0, -4);
 
     /*CREATE AN IMGBTN03*/
-    lv_obj_t *imgbtn03 = lv_btn_create(screenMain);
-    //lv_imgbtn_set_src(imgbtn03, LV_IMGBTN_STATE_RELEASED, NULL, NULL, NULL);
+    lv_obj_t *imgbtn03 = lv_imgbtn_create(screenMain);
+    lv_imgbtn_set_src(imgbtn03, LV_IMGBTN_STATE_RELEASED, NULL, &beber, NULL);
+    lv_obj_add_event_cb(imgbtn03, event_handler, LV_EVENT_ALL, label);
+    lv_obj_add_style(imgbtn03, &style_def, 0);
+    lv_obj_add_style(imgbtn03, &style_pr, LV_STATE_PRESSED);
+
+    lv_style_set_text_color(&style_but, lv_color_black());
+    lv_obj_add_style(imgbtn03, &style, 0);
     lv_obj_set_size(imgbtn03, 100, 100);
     lv_obj_set_pos(imgbtn03, 340, 50);
 
     lv_obj_t *labelbtn03 = lv_label_create(imgbtn03);
-    lv_label_set_text(labelbtn03, "BOTAO4");
+    lv_label_set_text(labelbtn03, "Beber");
     lv_obj_align(labelbtn03, LV_ALIGN_TOP_MID, 0, -4);
 
     /*CREATE AN IMGBTN04*/
-    lv_obj_t *imgbtn04 = lv_btn_create(screenMain);
-    //lv_imgbtn_set_src(imgbtn04, LV_IMGBTN_STATE_RELEASED, NULL, NULL, NULL);
+    lv_obj_t *imgbtn04 = lv_imgbtn_create(screenMain);
+    lv_imgbtn_set_src(imgbtn04, LV_IMGBTN_STATE_RELEASED, NULL, &entrar, NULL);
+    lv_obj_add_event_cb(imgbtn04, event_handler, LV_EVENT_ALL, label);
+    lv_obj_add_style(imgbtn04, &style_def, 0);
+    lv_obj_add_style(imgbtn04, &style_pr, LV_STATE_PRESSED);
+    lv_style_set_text_color(&style_but, lv_color_black());
+    lv_obj_add_style(imgbtn04, &style, 0);
     lv_obj_set_size(imgbtn04, 100, 100);
     lv_obj_set_pos(imgbtn04, 450, 50);
 
     lv_obj_t *labelbtn04 = lv_label_create(imgbtn04);
-    lv_label_set_text(labelbtn04, "BOTAO5");
+    lv_label_set_text(labelbtn04, "Entrar");
     lv_obj_align(labelbtn04, LV_ALIGN_TOP_MID, 0, -4);
 
     /*CREATE AN IMGBTN10*/
@@ -392,13 +388,17 @@ Arduino_GFX *gfx = create_default_Arduino_GFX();
     lv_obj_align(labelbtn20, LV_ALIGN_TOP_MID, 0, -4);
 
     /*CREATE AN IMGBTN21*/
-    lv_obj_t *imgbtn21 = lv_btn_create(screenMain);
-    //lv_imgbtn_set_src(imgbtn21, LV_IMGBTN_STATE_RELEASED, NULL, NULL, NULL);
+    lv_obj_t *imgbtn21 = lv_imgbtn_create(screenMain);
+    lv_imgbtn_set_src(imgbtn21, LV_IMGBTN_STATE_RELEASED, NULL, &comer, NULL);
+    lv_obj_add_event_cb(imgbtn21, event_handler, LV_EVENT_ALL, label);
+    lv_obj_add_style(imgbtn21, &style_def, 0);
+    lv_obj_add_style(imgbtn21, &style_pr, LV_STATE_PRESSED);
+    lv_obj_add_style(imgbtn21, &style, 0);
     lv_obj_set_size(imgbtn21, 100, 100);
     lv_obj_set_pos(imgbtn21, 120, 270);
 
     lv_obj_t *labelbtn21 = lv_label_create(imgbtn21);
-    lv_label_set_text(labelbtn21, "BOTAO12");
+    lv_label_set_text(labelbtn21, "Comer");
     lv_obj_align(labelbtn21, LV_ALIGN_TOP_MID, 0, -4);
 
     /*CREATE AN IMGBTN22*/
@@ -412,13 +412,17 @@ Arduino_GFX *gfx = create_default_Arduino_GFX();
     lv_obj_align(labelbtn22, LV_ALIGN_TOP_MID, 0, -4);
 
     /*CREATE AN IMGBTN23*/
-    lv_obj_t *imgbtn23 = lv_btn_create(screenMain);
-    //lv_imgbtn_set_src(imgbtn23, LV_IMGBTN_STATE_RELEASED, NULL, NULL, NULL);
+    lv_obj_t *imgbtn23 = lv_imgbtn_create(screenMain);
+    lv_imgbtn_set_src(imgbtn23, LV_IMGBTN_STATE_RELEASED, NULL, &nao, NULL);
+    lv_obj_add_event_cb(imgbtn23, event_handler, LV_EVENT_ALL, label);
+    lv_obj_add_style(imgbtn23, &style_def, 0);
+    lv_obj_add_style(imgbtn23, &style_pr, LV_STATE_PRESSED);
+    lv_obj_add_style(imgbtn23, &style, 0);
     lv_obj_set_size(imgbtn23, 100, 100);
     lv_obj_set_pos(imgbtn23, 340, 270);
 
     lv_obj_t *labelbtn23 = lv_label_create(imgbtn23);
-    lv_label_set_text(labelbtn23, "BOTA14");
+    lv_label_set_text(labelbtn23, "Nao");
     lv_obj_align(labelbtn23, LV_ALIGN_TOP_MID, 0, -4);
 
     /*CREATE AN IMGBTN24*/
@@ -448,7 +452,17 @@ Arduino_GFX *gfx = create_default_Arduino_GFX();
 
     /*CREATE AN IMGBTN31*/
     lv_obj_t *imgbtn31 = lv_btn_create(screenMain);
-    //lv_imgbtn_set_src(imgbtn21, LV_IMGBTN_STATE_RELEASED, NULL, NULL, NULL);
+    lv_imgbtn_set_src(imgbtn31, LV_IMGBTN_STATE_RELEASED, NULL, NULL, NULL);
+    lv_obj_add_event_cb(imgbtn31, event_handler, LV_EVENT_ALL, label);
+    lv_obj_add_style(imgbtn31, &style_def, 0);
+    lv_obj_add_style(imgbtn31, &style_pr, LV_STATE_PRESSED);
+    lv_style_set_text_color(&style_but, lv_color_black());
+    lv_obj_add_style(imgbtn31, &style, 0);
+    lv_obj_set_size(imgbtn31, 100, 100);
+    lv_obj_set_pos(imgbtn31, 450, 50);
+
+    lv_obj_t *labelbtn04 = lv_label_create(imgbtn31);
+    lv_label_set_text(labelbtn04, "Sair");
     lv_obj_set_size(imgbtn31, 100, 100);
     lv_obj_set_pos(imgbtn31, 120, 380);
 
@@ -467,13 +481,17 @@ Arduino_GFX *gfx = create_default_Arduino_GFX();
     lv_obj_align(labelbtn32, LV_ALIGN_TOP_MID, 0, -4);
 
     /*CREATE AN IMGBTN33*/
-    lv_obj_t *imgbtn33 = lv_btn_create(screenMain);
-    //lv_imgbtn_set_src(imgbtn23, LV_IMGBTN_STATE_RELEASED, NULL, NULL, NULL);
+    lv_obj_t *imgbtn33 = lv_imgbtn_create(screenMain);
+    lv_imgbtn_set_src(imgbtn33, LV_IMGBTN_STATE_RELEASED, NULL, &sim, NULL);
+    lv_obj_add_event_cb(imgbtn33, event_handler, LV_EVENT_ALL, label);
+    lv_obj_add_style(imgbtn33, &style_def, 0);
+    lv_obj_add_style(imgbtn33, &style_pr, LV_STATE_PRESSED);
+    lv_obj_add_style(imgbtn33, &style, 0);
     lv_obj_set_size(imgbtn33, 100, 100);
     lv_obj_set_pos(imgbtn33, 340, 380);
 
     lv_obj_t *labelbtn33 = lv_label_create(imgbtn33);
-    lv_label_set_text(labelbtn33, "BOTA19");
+    lv_label_set_text(labelbtn33, "Sim");
     lv_obj_align(labelbtn33, LV_ALIGN_TOP_MID, 0, -4);
 
     /*CREATE AN IMGBTN34*/
@@ -510,14 +528,14 @@ Arduino_GFX *gfx = create_default_Arduino_GFX();
 
     lv_scr_load(screenMain);
 
-    Serial.println("Setup Done");
+    // Serial.println("Setup Done");
   }
 }
 
 void loop() {
 
   lv_timer_handler();
-  delay(5);
+  delay(15);
   //  if(touch_has_signal())
   //  {
   //     if(touch_touched())
