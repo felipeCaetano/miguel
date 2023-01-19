@@ -43,10 +43,10 @@ const char *ntpServer = "pool.ntp.org";
 const long gmtOffset_sec = -3 * 60 * 60;  // Set your timezone here
 const int daylightOffset_sec = 0;
 
-// #include <EEPROM.h>
-// #define EEPROM_SIZE 512
-// #define EEPROM_ADDR_WIFI_FLAG 0
-// #define EEPROM_ADDR_WIFI_CREDENTIAL 4
+#include <EEPROM.h>
+#define EEPROM_SIZE 512
+#define EEPROM_ADDR_WIFI_FLAG 0
+#define EEPROM_ADDR_WIFI_CREDENTIAL 4
 
 
 static uint32_t screenWidth = 800;
@@ -54,9 +54,6 @@ static uint32_t screenHeight = 480;
 static lv_disp_draw_buf_t draw_buf;
 static lv_color_t *disp_draw_buf;
 static lv_disp_drv_t disp_drv;
-
-int16_t btn_width = 100;
-int16_t btn_height = 100;
 
 /*display flushing*/
 void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p) {
@@ -91,21 +88,19 @@ WebServer server(80);
 
 String long_text = "";
 
-
-
 void enviarNotificacao() {
-  Serial.println("Enviar Notificação");
+  // Serial.println("Enviar Notificação");
   int sec = millis() / 1000;
   int min = sec / 60;
   int hr = min / 60;
   char send_txt[1024];
   if (long_text.length() > 1) {
-    Serial.println(long_text);
+    // Serial.println(long_text);
     snprintf(send_txt, 1024,
              "Uma Nova Mensagem!<br>\
      <p>Em: %d: %d: %d - %s</p>",
              hr, min, sec, long_text.c_str());
-    Serial.println(long_text.length());
+    // Serial.println(long_text.length());
     server.send(200, "text/html", send_txt);
 
   } else {
@@ -113,15 +108,12 @@ void enviarNotificacao() {
   }
 }
 
-/*
-WIFI initialization:
-Wifi credentials:
-// */
-const char *ssid = "POCO X3 Pro";
-const char *password = "12345678";
+/*WIFI initialization: Wifi credentials:*/
+// const char *ssid = "POCO X3 Pro";
+// const char *password = "12345678";
 static int foundNetworks = 0;
 unsigned long networkTimeout = 10000;
-String ssidName, psword;
+String ssidName, ssidPW;
 
 TaskHandle_t ntScanTaskHandler, ntConnectTaskHandler;
 std::vector<String> foundWifiList;
@@ -152,6 +144,7 @@ static lv_style_t border_style;
 static lv_style_t popupBox_style;
 static lv_obj_t *screenMain;
 static lv_obj_t *timeLabel;
+static lv_obj_t *msgLabel;
 static lv_obj_t *settingBtn;
 static lv_obj_t *settings;
 static lv_obj_t *settingCloseBtn;
@@ -184,6 +177,10 @@ LV_IMG_DECLARE(querer);
 LV_IMG_DECLARE(entrar);
 LV_IMG_DECLARE(sair);
 LV_IMG_DECLARE(sim);
+LV_IMG_DECLARE(feliz);
+LV_IMG_DECLARE(triste);
+LV_IMG_DECLARE(parar);
+LV_IMG_DECLARE(mais);
 LV_IMG_DECLARE(brincar);
 
 LV_IMG_DECLARE(youtube);
@@ -247,12 +244,8 @@ void setup() {
     indev_drv.read_cb = my_touch_read;
     lv_indev_drv_register(&indev_drv);
 
-    // /*WiFi initialization*/
-    WiFi.begin(ssid, password);
-
     /*CREATE SCREEN OBJECTS*/
     screenMain = lv_scr_act();  //lv_obj_create(NULL);
-    // lv_obj_t *label = lv_label_create(screenMain);
 
     makeKeyboard(screenMain);
     setStyle();
@@ -262,15 +255,18 @@ void setup() {
     buildSettings();
     // tryPreviousNetwork();
 
-    if (MDNS.begin("miguelaac")) {
-      Serial.println("MDNS responder started");
-    }
+    // /*WiFi initialization*/
+    // WiFi.begin(ssid, password);    
 
-    server.on("/", handleRoot);
-    server.on("/notificacao", enviarNotificacao);
-    server.onNotFound(handleNotFound);
-    server.begin();
-    Serial.println("HTTP server started");
+    // if (MDNS.begin("miguelaac")) {
+    //   Serial.println(F("MDNS responder started"));
+    // }
+
+    // server.on("/", handleRoot);
+    // server.on("/notificacao", enviarNotificacao);
+    // server.onNotFound(handleNotFound);
+    // server.begin();
+    // Serial.println(F("HTTP server started"));
   }
 }
 
@@ -280,12 +276,13 @@ void loop() {
   server.handleClient();
 }
 
-lv_obj_t *lv_pictogram_create(lv_obj_t *screenMain, const void *img_src, const char *texto, lv_obj_t *label) {
+lv_obj_t *lv_pictogram_create(lv_obj_t *screenMain, const void *img_src, const char *texto) {
   lv_obj_t *imgbtn = lv_btn_create(screenMain);
   lv_obj_t *img = lv_img_create(imgbtn);
-  lv_img_set_src(img, img_src);
+  lv_img_set_src(img, img_src); 
+
   lv_obj_align(img, LV_ALIGN_BOTTOM_MID, 0, 10);
-  lv_obj_add_event_cb(imgbtn, event_handler, LV_EVENT_ALL, label);
+  lv_obj_add_event_cb(imgbtn, event_handler, LV_EVENT_ALL, NULL);
   lv_obj_set_size(imgbtn, 100, 100);
 
   lv_obj_t *labelbtn = lv_label_create(imgbtn);
@@ -339,8 +336,13 @@ static void buildStatusBar(lv_obj_t *screenMain) {
   timeLabel = lv_label_create(statusbar);
   lv_obj_set_size(timeLabel, screenWidth - 50, 30);
 
-  lv_label_set_text(timeLabel, "WiFi nao conectado!    " LV_SYMBOL_CLOSE);
+  lv_label_set_text(timeLabel, "WiFi nao conectado!    " LV_SYMBOL_WARNING);
   lv_obj_align(timeLabel, LV_ALIGN_LEFT_MID, 8, 4);
+
+  msgLabel = lv_label_create(statusbar);
+  lv_obj_set_size(msgLabel, screenWidth - 50, 30);  
+  lv_label_set_text(msgLabel, "Comunicador de Miguel");
+  lv_obj_align_to(msgLabel, timeLabel, LV_ALIGN_CENTER, screenWidth/2 - 150, 0);
 
   settingBtn = lv_btn_create(statusbar);
   lv_obj_set_size(settingBtn, 30, 30);
@@ -355,41 +357,36 @@ static void buildStatusBar(lv_obj_t *screenMain) {
 static void btn_event_cb(lv_event_t *e) {
   lv_event_code_t code = lv_event_get_code(e);
   lv_obj_t *btn = lv_event_get_target(e);
-  // lv_obj_t *screenMain = lv_scr_act();
-
+  
   if (code == LV_EVENT_CLICKED) {
     if (btn == settingBtn) {
+      Serial.println("Clear Flag");
+      delay(10);
       lv_obj_clear_flag(settings, LV_OBJ_FLAG_HIDDEN);
     } else if (btn == settingCloseBtn) {
       lv_obj_add_flag(settings, LV_OBJ_FLAG_HIDDEN);
     } else if (btn == mboxConnectBtn) {
-      password = lv_textarea_get_text(mboxPassword);  //String(lv_textarea_get_text(mboxPassword));
-
+      Serial.println("Connector");
+      delay(10);
+      ssidPW = String(lv_textarea_get_text(mboxPassword));  //lv_textarea_get_text(mboxPassword);
       networkConnector();
       lv_obj_move_background(mboxConnect);
-
-      popupMsgBox("Connecting!", "Attempting to connect to the selected network.");
-      Serial.println("Passou deu aqui");
+      popupMsgBox("Conectando!", "Tentando se conectar à rede selecionada.");
     } else if (btn == mboxCloseBtn) {
       lv_obj_move_background(mboxConnect);
     } else if (btn == popupBoxCloseBtn) {
       lv_obj_move_background(popupBox);
     }
-
   } else if (code == LV_EVENT_VALUE_CHANGED) {
     if (btn == settingWiFiSwitch) {
-
       if (lv_obj_has_state(btn, LV_STATE_CHECKED)) {
-
         if (ntScanTaskHandler == NULL) {
           networkStatus = NETWORK_SEARCHING;
           networkScanner();
           timer = lv_timer_create(timerForNetwork, 1000, wfList);
-          lv_list_add_text(wfList, "WiFi: Looking for Networks...");
+          lv_list_add_text(wfList, "WiFi: Buscando por Redes...");
         }
-
       } else {
-
         if (ntScanTaskHandler != NULL) {
           networkStatus = NONE;
           vTaskDelete(ntScanTaskHandler);
@@ -397,10 +394,9 @@ static void btn_event_cb(lv_event_t *e) {
           lv_timer_del(timer);
           lv_obj_clean(wfList);
         }
-
         if (WiFi.status() == WL_CONNECTED) {
           WiFi.disconnect(true);
-          lv_label_set_text(timeLabel, "WiFi Not Connected!    " LV_SYMBOL_CLOSE);
+          lv_label_set_text(timeLabel, "WiFi não Conectado!    " LV_SYMBOL_CLOSE);
         }
       }
     }
@@ -410,12 +406,12 @@ static void btn_event_cb(lv_event_t *e) {
 static void buildPWMsgBox() {
 
   mboxConnect = lv_obj_create(lv_scr_act());
-  // lv_obj_add_style(mboxConnect, &border_style, 0);
+  lv_obj_add_style(mboxConnect, &border_style, 0);
   lv_obj_set_size(mboxConnect, gfx->width() * 2 / 3, gfx->height() / 2);
   lv_obj_center(mboxConnect);
 
   mboxTitle = lv_label_create(mboxConnect);
-  lv_label_set_text(mboxTitle, "Selected WiFi SSID: ThatProject");
+  lv_label_set_text(mboxTitle, "Nome da rede selecionada: Caetano");
   lv_obj_align(mboxTitle, LV_ALIGN_TOP_LEFT, 0, 0);
 
   mboxPassword = lv_textarea_create(mboxConnect);
@@ -428,14 +424,14 @@ static void buildPWMsgBox() {
   lv_obj_add_event_cb(mboxConnectBtn, btn_event_cb, LV_EVENT_ALL, NULL);
   lv_obj_align(mboxConnectBtn, LV_ALIGN_BOTTOM_LEFT, 0, 0);
   lv_obj_t *btnLabel = lv_label_create(mboxConnectBtn);
-  lv_label_set_text(btnLabel, "Connect");
+  lv_label_set_text(btnLabel, "Conectar");
   lv_obj_center(btnLabel);
 
   mboxCloseBtn = lv_btn_create(mboxConnect);
   lv_obj_add_event_cb(mboxCloseBtn, btn_event_cb, LV_EVENT_ALL, NULL);
   lv_obj_align(mboxCloseBtn, LV_ALIGN_BOTTOM_RIGHT, 0, 0);
   lv_obj_t *btnLabel2 = lv_label_create(mboxCloseBtn);
-  lv_label_set_text(btnLabel2, "Cancel");
+  lv_label_set_text(btnLabel2, "Cancelar");
   lv_obj_center(btnLabel2);
 }
 
@@ -448,7 +444,6 @@ static void text_input_event_cb(lv_event_t *e) {
     lv_keyboard_set_textarea(keyboard, ta);
     lv_obj_clear_flag(keyboard, LV_OBJ_FLAG_HIDDEN);
   }
-
   if (code == LV_EVENT_DEFOCUSED) {
     lv_keyboard_set_textarea(keyboard, NULL);
     lv_obj_add_flag(keyboard, LV_OBJ_FLAG_HIDDEN);
@@ -462,7 +457,7 @@ static void buildSettings() {
   lv_obj_align(settings, LV_ALIGN_TOP_RIGHT, -20, 20);
 
   settinglabel = lv_label_create(settings);
-  lv_label_set_text(settinglabel, "Settings " LV_SYMBOL_SETTINGS);
+  lv_label_set_text(settinglabel, "Configurar rede" LV_SYMBOL_SETTINGS);
   lv_obj_align(settinglabel, LV_ALIGN_TOP_LEFT, 0, 0);
 
   settingCloseBtn = lv_btn_create(settings);
@@ -483,67 +478,61 @@ static void buildSettings() {
   lv_obj_align_to(wfList, settinglabel, LV_ALIGN_TOP_LEFT, 0, 30);
 }
 
-// void tryPreviousNetwork() {
-//   if (!EEPROM.begin(EEPROM_SIZE)) {
-//     delay(1000);
-//     ESP.restart();
-//   }
-//   loadWIFICredentialEEPROM();
-// }
+void tryPreviousNetwork() {
+  if (!EEPROM.begin(EEPROM_SIZE)) {
+    delay(1000);
+    ESP.restart();
+  }
+  loadWIFICredentialEEPROM();
+}
 
-// void saveWIFICredentialEEPROM(int flag, String ssidpw) {
-//   EEPROM.writeInt(EEPROM_ADDR_WIFI_FLAG, flag);
-//   EEPROM.writeString(EEPROM_ADDR_WIFI_CREDENTIAL, flag == 1 ? ssidpw : "");
-//   EEPROM.commit();
-// }
+void saveWIFICredentialEEPROM(int flag, String ssidpw) {
+  EEPROM.writeInt(EEPROM_ADDR_WIFI_FLAG, flag);
+  EEPROM.writeString(EEPROM_ADDR_WIFI_CREDENTIAL, flag == 1 ? ssidpw : "");
+  EEPROM.commit();
+}
 
-// void loadWIFICredentialEEPROM() {
-//   int wifiFlag = EEPROM.readInt(EEPROM_ADDR_WIFI_FLAG);
-//   String wifiCredential = EEPROM.readString(EEPROM_ADDR_WIFI_CREDENTIAL);
+void loadWIFICredentialEEPROM() {
+  int wifiFlag = EEPROM.readInt(EEPROM_ADDR_WIFI_FLAG);
+  String wifiCredential = EEPROM.readString(EEPROM_ADDR_WIFI_CREDENTIAL);
 
-//   if (wifiFlag == 1 && wifiCredential.length() != 0 && wifiCredential.indexOf(" ") != -1) {
-//     char preSSIDName[30], preSSIDPw[30];
-//     if (sscanf(wifiCredential.c_str(), "%s %s", preSSIDName, preSSIDPw) == 2) {
+  if (wifiFlag == 1 && wifiCredential.length() != 0 && wifiCredential.indexOf(" ") != -1) {
+    char preSSIDName[30], preSSIDPw[30];
+    if (sscanf(wifiCredential.c_str(), "%s %s", preSSIDName, preSSIDPw) == 2) {
 
-//       lv_obj_add_state(settingWiFiSwitch, LV_STATE_CHECKED);
-//       lv_event_send(settingWiFiSwitch, LV_EVENT_VALUE_CHANGED, NULL);
+      lv_obj_add_state(settingWiFiSwitch, LV_STATE_CHECKED);
+      lv_event_send(settingWiFiSwitch, LV_EVENT_VALUE_CHANGED, NULL);
 
-//       popupMsgBox("Welcome Back!", "Attempts to reconnect to the previously connected network.");
-//       ssid = String(preSSIDName);
-//       psword = String(preSSIDPw);
-//       networkConnector();
-//     } else {
-//       saveWIFICredentialEEPROM(0, "");
-//     }
-//   }
-// }
+      popupMsgBox("Bem Vindo!", "Tentando conectar...");
+      ssidName = String(preSSIDName);
+      ssidPW = String(preSSIDPw);
+      networkConnector();
+    } else {
+      saveWIFICredentialEEPROM(0, "");
+    }
+  }
+}
 
 static void timerForNetwork(lv_timer_t *timer) {
   LV_UNUSED(timer);
 
   switch (networkStatus) {
-
     case NETWORK_SEARCHING:
       showingFoundWiFiList();
       break;
-
     case NETWORK_CONNECTED_POPUP:
-      popupMsgBox("WiFi Connected!", "Now you'll get the current time soon.");
+      popupMsgBox("WiFi Conectado!", "Atualizando a Hora...");
       networkStatus = NETWORK_CONNECTED;
       configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
       break;
-
     case NETWORK_CONNECTED:
-
       showingFoundWiFiList();
       updateLocalTime();
       break;
-
     case NETWORK_CONNECT_FAILED:
       networkStatus = NETWORK_SEARCHING;
-      popupMsgBox("Oops!", "Please check your wifi password and try again.");
+      popupMsgBox("Oh!", "Por favor, verifique a senha e tente novamente.");
       break;
-
     default:
       break;
   }
@@ -561,7 +550,6 @@ static void showingFoundWiFiList() {
     lv_obj_add_event_cb(btn, list_event_handler, LV_EVENT_CLICKED, NULL);
     delay(1);
   }
-
   foundNetworks = foundWifiList.size();
 }
 
@@ -570,147 +558,147 @@ static void buildBody() {
   lv_obj_add_style(bodyScreen, &border_style, 0);
   lv_obj_set_size(bodyScreen, gfx->width(), gfx->height() - 34);
   lv_obj_align(bodyScreen, LV_ALIGN_BOTTOM_MID, 0, 0);
-  lv_obj_t *label = lv_label_create(bodyScreen);
-  lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL);
-  lv_label_set_text(label, "");
-  lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 0);
-  lv_obj_set_size(label, 800, 60);
-  lv_obj_set_pos(label, 0, 0);
+  // lv_obj_t *label = lv_label_create(bodyScreen);
+  // lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL);
+  // lv_label_set_text(label, "");
+  // lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 0);
+  // lv_obj_set_size(label, 800, 60);
+  // lv_obj_set_pos(label, 0, 0);
 
   /*CREATE AN IMGBTN00*/
-  lv_obj_t *imgbtn00 = lv_pictogram_create(bodyScreen, &eu, "Eu ", label);
+  lv_obj_t *imgbtn00 = lv_pictogram_create(bodyScreen, &eu, "Eu ");
   lv_obj_add_style(imgbtn00, &style_but, 0);
   lv_obj_add_style(imgbtn00, &style_pr, LV_STATE_PRESSED);
   lv_obj_align(imgbtn00, LV_ALIGN_TOP_LEFT, 0, 0);
-  lv_obj_set_pos(imgbtn00, 10, 50);
+  lv_obj_set_pos(imgbtn00, 0, -10);
 
   /*CREATE AN IMGBTN01*/
-  lv_obj_t *imgbtn01 = lv_pictogram_create(bodyScreen, &querer, "Quero ", label);
+  lv_obj_t *imgbtn01 = lv_pictogram_create(bodyScreen, &querer, "Quero ");
   lv_obj_add_style(imgbtn01, &style_but, 0);
   lv_obj_add_style(imgbtn01, &style_pr, LV_STATE_PRESSED);
-  lv_obj_set_pos(imgbtn01, 120, 50);
+  lv_obj_set_pos(imgbtn01, 110, -10);
 
   /*CREATE AN IMGBTN02*/
-  lv_obj_t *imgbtn02 = lv_pictogram_create(bodyScreen, &assistir, "Assistir ", label);
+  lv_obj_t *imgbtn02 = lv_pictogram_create(bodyScreen, &assistir, "Assistir ");
   lv_obj_add_style(imgbtn02, &style_but, 0);
   lv_obj_add_style(imgbtn02, &style_pr, LV_STATE_PRESSED);
-  lv_obj_set_pos(imgbtn02, 230, 50);
+  lv_obj_set_pos(imgbtn02, 220, -10);
 
   /*CREATE AN IMGBTN03*/
-  lv_obj_t *imgbtn03 = lv_pictogram_create(bodyScreen, &beber, "Beber ", label);
+  lv_obj_t *imgbtn03 = lv_pictogram_create(bodyScreen, &beber, "Beber ");
   lv_obj_add_style(imgbtn03, &style_but, 0);
   lv_obj_add_style(imgbtn03, &style_pr, LV_STATE_PRESSED);
-  lv_obj_set_pos(imgbtn03, 340, 50);
+  lv_obj_set_pos(imgbtn03, 330, -10);
 
   // /*CREATE AN IMGBTN04*/
-  lv_obj_t *imgbtn04 = lv_pictogram_create(bodyScreen, &entrar, "Entrar ", label);
+  lv_obj_t *imgbtn04 = lv_pictogram_create(bodyScreen, &entrar, "Entrar ");
   lv_obj_add_style(imgbtn04, &style_but, 0);
   lv_obj_add_style(imgbtn04, &style_pr, LV_STATE_PRESSED);
-  lv_obj_set_pos(imgbtn04, 450, 50);
+  lv_obj_set_pos(imgbtn04, 440, -10);
 
   /*CREATE AN IMGBTN10*/
-  lv_obj_t *imgbtn10 = lv_pictogram_create(bodyScreen, &mae, "Mae ", label);
+  lv_obj_t *imgbtn10 = lv_pictogram_create(bodyScreen, &mae, "Mae ");
   lv_obj_add_style(imgbtn10, &style_but, 0);
   lv_obj_add_style(imgbtn10, &style_pr, LV_STATE_PRESSED);
-  lv_obj_set_pos(imgbtn10, 10, 160);
+  lv_obj_set_pos(imgbtn10, 0, 100);
 
   /*CREATE AN IMGBTN11*/
-  lv_obj_t *imgbtn11 = lv_pictogram_create(bodyScreen, &brincar, "Brincar ", label);
+  lv_obj_t *imgbtn11 = lv_pictogram_create(bodyScreen, &brincar, "Brincar ");
   lv_obj_add_style(imgbtn11, &style_but, 0);
   lv_obj_add_style(imgbtn11, &style_pr, LV_STATE_PRESSED);
-  lv_obj_set_pos(imgbtn11, 120, 160);
+  lv_obj_set_pos(imgbtn11, 110, 100);
 
   /*CREATE AN IMGBTN12*/
-  lv_obj_t *imgbtn12 = lv_pictogram_create(bodyScreen, &ajuda, "Ajuda ", label);
+  lv_obj_t *imgbtn12 = lv_pictogram_create(bodyScreen, &ajuda, "Ajuda ");
   lv_obj_add_style(imgbtn12, &style_but, 0);
   lv_obj_add_style(imgbtn12, &style_pr, LV_STATE_PRESSED);
-  lv_obj_set_pos(imgbtn12, 230, 160);
+  lv_obj_set_pos(imgbtn12, 220, 100);
 
   /*CREATE AN IMGBTN13*/
-  lv_obj_t *imgbtn13 = lv_pictogram_create(bodyScreen, &passear, "Passear ", label);
+  lv_obj_t *imgbtn13 = lv_pictogram_create(bodyScreen, &passear, "Passear ");
   lv_obj_add_style(imgbtn13, &style_but, 0);
   lv_obj_add_style(imgbtn13, &style_pr, LV_STATE_PRESSED);
-  lv_obj_set_pos(imgbtn13, 340, 160);
+  lv_obj_set_pos(imgbtn13, 330, 100);
 
   /*CREATE AN IMGBTN14*/
-  lv_obj_t *imgbtn14 = lv_pictogram_create(bodyScreen, &mae, "BOATAO10 ", label);
+  lv_obj_t *imgbtn14 = lv_pictogram_create(bodyScreen, &parar, "Parar ");
   lv_obj_add_style(imgbtn14, &style_but, 0);
   lv_obj_add_style(imgbtn14, &style_pr, LV_STATE_PRESSED);
-  lv_obj_set_pos(imgbtn14, 450, 160);
+  lv_obj_set_pos(imgbtn14, 440, 100);
 
   /*CREATE AN IMGBTN20*/
-  lv_obj_t *imgbtn20 = lv_pictogram_create(bodyScreen, &voce, "Voce ", label);
+  lv_obj_t *imgbtn20 = lv_pictogram_create(bodyScreen, &voce, "Voce ");
   lv_obj_add_style(imgbtn20, &style_but, 0);
   lv_obj_add_style(imgbtn20, &style_pr, LV_STATE_PRESSED);
-  lv_obj_set_pos(imgbtn20, 10, 270);
+  lv_obj_set_pos(imgbtn20, 0, 210);
 
   /*CREATE AN IMGBTN21*/
-  lv_obj_t *imgbtn21 = lv_pictogram_create(bodyScreen, &comer, "Comer ", label);
+  lv_obj_t *imgbtn21 = lv_pictogram_create(bodyScreen, &comer, "Comer ");
   lv_obj_add_style(imgbtn21, &style_but, 0);
   lv_obj_add_style(imgbtn21, &style_pr, LV_STATE_PRESSED);
-  lv_obj_set_pos(imgbtn21, 120, 270);
+  lv_obj_set_pos(imgbtn21, 110, 210);
 
   /*CREATE AN IMGBTN22*/
-  lv_obj_t *imgbtn22 = lv_pictogram_create(bodyScreen, &pegar, "Pegar ", label);
+  lv_obj_t *imgbtn22 = lv_pictogram_create(bodyScreen, &pegar, "Pegar ");
   lv_obj_add_style(imgbtn22, &style_but, 0);
   lv_obj_add_style(imgbtn22, &style_pr, LV_STATE_PRESSED);
-  lv_obj_set_pos(imgbtn22, 230, 270);
+  lv_obj_set_pos(imgbtn22, 220, 210);
 
   /*CREATE AN IMGBTN23*/
-  lv_obj_t *imgbtn23 = lv_pictogram_create(bodyScreen, &nao, "Nao ", label);
+  lv_obj_t *imgbtn23 = lv_pictogram_create(bodyScreen, &nao, "Nao ");
   lv_obj_add_style(imgbtn23, &style_but, 0);
   lv_obj_add_style(imgbtn23, &style_pr, LV_STATE_PRESSED);
-  lv_obj_set_pos(imgbtn23, 340, 270);
+  lv_obj_set_pos(imgbtn23, 330, 210);
 
   /*CREATE AN IMGBTN24*/
-  lv_obj_t *imgbtn24 = lv_pictogram_create(bodyScreen, &comer, "BOTAO15 ", label);
+  lv_obj_t *imgbtn24 = lv_pictogram_create(bodyScreen, &mais, "Mais ");
   lv_obj_add_style(imgbtn24, &style_but, 0);
   lv_obj_add_style(imgbtn24, &style_pr, LV_STATE_PRESSED);
-  lv_obj_set_pos(imgbtn24, 450, 270);
+  lv_obj_set_pos(imgbtn24, 440, 210);
 
   /*CREATE AN IMGBTN30*/
-  lv_obj_t *imgbtn30 = lv_pictogram_create(bodyScreen, &vovo, "Vovo ", label);
+  lv_obj_t *imgbtn30 = lv_pictogram_create(bodyScreen, &vovo, "Vovo ");
   lv_obj_add_style(imgbtn30, &style_but, 0);
   lv_obj_add_style(imgbtn30, &style_pr, LV_STATE_PRESSED);
-  lv_obj_set_pos(imgbtn30, 10, 380);
+  lv_obj_set_pos(imgbtn30, 0, 320);
 
   // /*CREATE AN IMGBTN31*/
-  lv_obj_t *imgbtn31 = lv_pictogram_create(bodyScreen, &sair, "Sair ", label);
+  lv_obj_t *imgbtn31 = lv_pictogram_create(bodyScreen, &sair, "Sair ");
   lv_obj_add_style(imgbtn31, &style_but, 0);
   lv_obj_add_style(imgbtn31, &style_pr, LV_STATE_PRESSED);
-  lv_obj_set_pos(imgbtn31, 120, 380);
+  lv_obj_set_pos(imgbtn31, 110, 320);
 
   /*CREATE AN IMGBTN32*/
-  lv_obj_t *imgbtn32 = lv_pictogram_create(bodyScreen, &vovo, "BOTAO18 ", label);
+  lv_obj_t *imgbtn32 = lv_pictogram_create(bodyScreen, &feliz, "Feliz ");
   lv_obj_add_style(imgbtn32, &style_but, 0);
   lv_obj_add_style(imgbtn32, &style_pr, LV_STATE_PRESSED);
-  lv_obj_set_pos(imgbtn32, 230, 380);
+  lv_obj_set_pos(imgbtn32, 220, 320);
 
-  // /*CREATE AN IMGBTN33*/
-  lv_obj_t *imgbtn33 = lv_pictogram_create(bodyScreen, &sim, "Sim ", label);
+  /*CREATE AN IMGBTN33*/
+  lv_obj_t *imgbtn33 = lv_pictogram_create(bodyScreen, &sim, "Sim ");
   lv_obj_add_style(imgbtn33, &style_but, 0);
   lv_obj_add_style(imgbtn33, &style_pr, LV_STATE_PRESSED);
-  lv_obj_set_pos(imgbtn33, 340, 380);
+  lv_obj_set_pos(imgbtn33, 330, 320);
 
-  /*CREATE AN IMGBTN34*/
-  lv_obj_t *imgbtn34 = lv_pictogram_create(bodyScreen, &vovo, "BOTAO20 ", label);
+  // /*CREATE AN IMGBTN34*/
+  lv_obj_t *imgbtn34 = lv_pictogram_create(bodyScreen, &triste, "Triste ");
   lv_obj_add_style(imgbtn34, &style_but, 0);
   lv_obj_add_style(imgbtn34, &style_pr, LV_STATE_PRESSED);
-  lv_obj_set_pos(imgbtn34, 450, 380);
+  lv_obj_set_pos(imgbtn34, 440, 320);
 
-  /*  CREATE PANEL FOR TARGETS */
+  // /*  CREATE PANEL FOR TARGETS */
   lv_obj_t *panel = lv_obj_create(bodyScreen);
   lv_obj_set_size(panel, 200, 400);
   lv_obj_set_scroll_snap_y(panel, LV_SCROLL_SNAP_START);
   lv_obj_set_flex_flow(panel, LV_FLEX_FLOW_COLUMN);
   lv_obj_align(panel, LV_ALIGN_RIGHT_MID, 0, 0);
 
-  uint32_t i;
+  uint16_t i;
   String labels[10] = { "Agua", "Youtube", "Uva", "Bita", "Maca", "Netflix", "Fusca", "Pipoca", "Biscoito", "Pizza" };
   for (i = 0; i < 10; i++) {
     char lbl_text[10];
     lv_obj_t *btn = lv_btn_create(panel);
-    lv_obj_add_event_cb(btn, target_handler, LV_EVENT_ALL, label);
+    lv_obj_add_event_cb(btn, target_handler, LV_EVENT_ALL, NULL);
     lv_obj_set_size(btn, 150, 135);
     lv_obj_set_pos(btn, 0, 30);
     lv_obj_add_style(btn, &style_but, 0);
@@ -743,7 +731,7 @@ static void buildBody() {
   put_image(tgt_btn, &pizza);
 
   lv_obj_update_snap(panel, LV_ANIM_ON);
-  lv_obj_set_pos(panel, 0, 10);
+  lv_obj_set_pos(panel, 0, -20);
 }
 
 void put_image(lv_obj_t *tgt_btn, const void *img_src) {
@@ -756,17 +744,17 @@ static void target_handler(lv_event_t *e) {
   lv_event_code_t code = lv_event_get_code(e);
   lv_obj_t *btn = (lv_obj_t *)lv_event_get_target(e);
 
-  lv_obj_t *label = (lv_obj_t *)lv_event_get_user_data(e);
-  lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL);
+  // lv_obj_t *label = (lv_obj_t *)lv_event_get_user_data(e);
+  // lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL);
 
   lv_obj_t *content = lv_obj_get_child(btn, 0);
-  char *texto = lv_label_get_text(label);
+  // char *texto = lv_label_get_text(label);
   char final_texto[100];
   if (code == LV_EVENT_CLICKED) {
     long_text += lv_label_get_text(content);
     Serial.println(long_text);
     long_text.toCharArray(final_texto, 100);
-    lv_label_set_text(timeLabel, final_texto);
+    lv_label_set_text(msgLabel, final_texto);
     enviarNotificacao();
   }
   // long_text = "";
@@ -776,20 +764,20 @@ static void event_handler(lv_event_t *e) {
 
   lv_event_code_t code = lv_event_get_code(e);
   lv_obj_t *btn = (lv_obj_t *)lv_event_get_target(e);
-  lv_obj_t *label = (lv_obj_t *)lv_event_get_user_data(e);
-  lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL);
+  // lv_obj_t *label = (lv_obj_t *)lv_event_get_user_data(e);
+  // lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL);
   lv_obj_t *content = lv_obj_get_child(btn, 1);
-  char *texto = lv_label_get_text(label);
+  // char *texto = lv_label_get_text(label);
   char final_texto[100];
 
   if (code == LV_EVENT_CLICKED) {
     long_text += lv_label_get_text(content);
     long_text.toCharArray(final_texto, 100);
-    lv_label_set_text(timeLabel, final_texto);
+    lv_label_set_text(msgLabel, final_texto);
     Serial.print(long_text);
-  } else if (code == LV_EVENT_RELEASED) {
-    LV_LOG_USER("Pressione um botão");
-  }
+  }// else if (code == LV_EVENT_RELEASED) {
+  //   LV_LOG_USER("Pressione um botão");
+  // }
 }
 
 static void list_event_handler(lv_event_t *e) {
@@ -810,17 +798,10 @@ static void list_event_handler(lv_event_t *e) {
   }
 }
 
-/*
- * NETWORK TASKS
- */
+/* * NETWORK TASKS */
 
 static void networkScanner() {
-  xTaskCreate(scanWIFITask,
-              "ScanWIFITask",
-              4096,
-              NULL,
-              1,
-              &ntScanTaskHandler);
+  xTaskCreate(scanWIFITask, "ScanWIFITask", 4096, NULL, 1, &ntScanTaskHandler);
 }
 
 static void networkConnector() {
@@ -847,34 +828,43 @@ static void scanWIFITask(void *pvParameters) {
 }
 
 void beginWIFITask(void *pvParameters) {
-
   unsigned long startingTime = millis();
   WiFi.mode(WIFI_STA);
   WiFi.disconnect();
   vTaskDelay(100);
 
-  WiFi.begin(ssidName.c_str(), psword.c_str());
+  WiFi.begin(ssidName.c_str(), ssidPW.c_str());
   while (WiFi.status() != WL_CONNECTED && (millis() - startingTime) < networkTimeout) {
     vTaskDelay(250);
   }
 
   if (WiFi.status() == WL_CONNECTED) {
     networkStatus = NETWORK_CONNECTED_POPUP;
-    // saveWIFICredentialEEPROM(1, ssid + " " + psword);
+
+    if (MDNS.begin("miguelaac")) {
+      Serial.println(F("MDNS responder started"));
+    }
+
+    server.on("/", handleRoot);
+    server.on("/notificacao", enviarNotificacao);
+    server.onNotFound(handleNotFound);
+    server.begin();
+    Serial.println(F("HTTP server started"));
+
+    saveWIFICredentialEEPROM(1, ssidName + " " + ssidPW);
   } else {
     networkStatus = NETWORK_CONNECT_FAILED;
-    // saveWIFICredentialEEPROM(0, "");
+    saveWIFICredentialEEPROM(0, "");
   }
 
   vTaskDelete(NULL);
 }
 
 static void popupMsgBox(String title, String msg) {
-
   if (popupBox != NULL) {
     lv_obj_del(popupBox);
   }
-
+  Serial.println("popupbox");
   popupBox = lv_obj_create(screenMain);
   lv_obj_add_style(popupBox, &popupBox_style, 0);
   lv_obj_set_size(popupBox, gfx->width() * 2 / 3, gfx->height() / 2);
@@ -906,8 +896,8 @@ void updateLocalTime() {
 
   char hourMin[6];
   strftime(hourMin, 6, "%H:%M", &timeinfo);
-  String hourMinWithSymbol = String(hourMin);
-  hourMinWithSymbol += "   ";
-  hourMinWithSymbol += LV_SYMBOL_WIFI;
+  String hourMinWithSymbol = LV_SYMBOL_WIFI;
+  hourMinWithSymbol += String(hourMin);  
+  hourMinWithSymbol += " ";
   lv_label_set_text(timeLabel, hourMinWithSymbol.c_str());
 }
